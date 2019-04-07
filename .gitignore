@@ -1,0 +1,16 @@
+*.result
+*.json
+*.jld2
+*.cov
+*.info
+
+#Do not save checkpoints and testpoints
+examples/.ipynb_checkpoints/*
+examples/DataAccess.jl
+test/main_testing.jl
+dev/*
+
+#Docs
+docs/build/
+docs/site/
+data/*
