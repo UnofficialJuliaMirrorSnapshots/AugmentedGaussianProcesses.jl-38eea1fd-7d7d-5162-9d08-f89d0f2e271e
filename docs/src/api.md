@@ -31,6 +31,7 @@ LaplaceLikelihood
 LogisticLikelihood
 BayesianSVM
 LogisticSoftMaxLikelihood
+PoissonLikelihood
 ```
 
 ## Inference Types
@@ -70,6 +71,13 @@ getvariance
 getlengthscales
 ```
 
+## Prior Means
+
+```@docs
+ZeroMean
+ConstantMean
+EmpiricalMean
+```
 
 ## Index
 

@@ -41,6 +41,7 @@ mutable struct VGP{L<:Likelihood,I<:Inference,T<:Real,V<:AbstractVector{T}} <: A
     Σ::LatentArray{Symmetric{T,Matrix{T}}}
     η₁::LatentArray{V}
     η₂::LatentArray{Symmetric{T,Matrix{T}}}
+    μ₀::LatentArray{MeanPrior{T}}
     Knn::LatentArray{Symmetric{T,Matrix{T}}}
     invKnn::LatentArray{Symmetric{T,Matrix{T}}}
     kernel::LatentArray{Kernel{T}}
@@ -55,7 +56,7 @@ end
 
 function VGP(X::AbstractArray{T1,N1},y::AbstractArray{T2,N2},kernel::Union{Kernel,AbstractVector{<:Kernel}},
             likelihood::LikelihoodType,inference::InferenceType;
-            verbose::Integer=0,Autotuning::Bool=true,atfrequency::Integer=1,
+            verbose::Integer=0,Autotuning::Bool=true,atfrequency::Integer=1,mean::Union{<:Real,AbstractVector{<:Real},MeanPrior}=ZeroMean(),
             IndependentPriors::Bool=true,ArrayType::UnionAll=Vector) where {T1<:Real,T2,N1,N2,LikelihoodType<:Likelihood,InferenceType<:Inference}
 
             X,y,nLatent,likelihood = check_data!(X,y,likelihood)
@@ -68,6 +69,14 @@ function VGP(X::AbstractArray{T1,N1},y::AbstractArray{T2,N2},kernel::Union{Kerne
             μ = LatentArray([zeros(T1,nFeature) for _ in 1:nLatent]); η₁ = deepcopy(μ)
             Σ = LatentArray([Symmetric(Matrix(Diagonal(one(T1)*I,nFeature))) for _ in 1:nLatent]);
             η₂ = -0.5*inv.(Σ);
+            μ₀ = []
+            if typeof(mean) <: Real
+                μ₀ = [ConstantMean(mean) for _ in 1:nPrior]
+            elseif typeof(mean) <: AbstractVector{<:Real}
+                μ₀ = [EmpiricalMean(mean) for _ in 1:nPrior]
+            else
+                μ₀ = [mean for _ in 1:nPrior]
+            end
             Knn = LatentArray([deepcopy(Σ[1]) for _ in 1:nPrior]);
             invKnn = copy(Knn)
 
@@ -77,7 +86,7 @@ function VGP(X::AbstractArray{T1,N1},y::AbstractArray{T2,N2},kernel::Union{Kerne
             VGP{LikelihoodType,InferenceType,T1,ArrayType{T1}}(X,y,
                     nFeature, nDim, nFeature, nLatent,
                     IndependentPriors,nPrior,μ,Σ,η₁,η₂,
-                    Knn,invKnn,kernel,likelihood,inference,
+                    μ₀,Knn,invKnn,kernel,likelihood,inference,
                     verbose,Autotuning,atfrequency,false)
 end
 

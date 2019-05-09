@@ -34,6 +34,7 @@ mutable struct GP{L<:Likelihood,I<:Inference,T<:Real,V<:AbstractVector{T}} <: Ab
     nLatent::Int64 # Number pf latent GPs
     IndependentPriors::Bool # Use of separate priors for each latent GP
     nPrior::Int64 # Equal to 1 or nLatent given IndependentPriors
+    μ₀::LatentArray{MeanPrior{T}}
     Knn::LatentArray{Symmetric{T,Matrix{T}}}
     invKnn::LatentArray{Symmetric{T,Matrix{T}}}
     kernel::LatentArray{Kernel{T}}
@@ -47,7 +48,7 @@ end
 
 
 function GP(X::AbstractArray{T1,N1},y::AbstractArray{T2,N2},kernel::Union{Kernel,AbstractVector{<:Kernel}};  noise::Real=1e-5,
-            verbose::Integer=0,Autotuning::Bool=true,atfrequency::Integer=1,
+            verbose::Integer=0,Autotuning::Bool=true,atfrequency::Integer=1,mean::Union{<:Real,AbstractVector{<:Real},MeanPrior}=ZeroMean(),
             IndependentPriors::Bool=true,ArrayType::UnionAll=Vector) where {T1<:Real,T2,N1,N2}
             likelihood = GaussianLikelihood(noise)
             inference = Analytic()
@@ -59,14 +60,21 @@ function GP(X::AbstractArray{T1,N1},y::AbstractArray{T2,N2},kernel::Union{Kernel
 
             Knn = LatentArray([Symmetric(Matrix{T1}(I,nFeature,nFeature)) for _ in 1:nPrior]);
             invKnn = copy(Knn)
-
+            μ₀ = []
+            if typeof(mean) <: Real
+                μ₀ = [ConstantMean(mean) for _ in 1:nPrior]
+            elseif typeof(mean) <: AbstractVector{<:Real}
+                μ₀ = [EmpiricalMean(mean) for _ in 1:nPrior]
+            else
+                μ₀ = [mean for _ in 1:nPrior]
+            end
             likelihood = init_likelihood(likelihood,inference,nLatent,nSample)
             inference = init_inference(inference,nLatent,nSample,nSample,nSample)
 
             model = GP{GaussianLikelihood{T1},Analytic{T1},T1,ArrayType{T1}}(X,y,
                     nFeature, nDim, nFeature, nLatent,
                     IndependentPriors,nPrior,
-                    Knn,invKnn,kernel,likelihood,inference,
+                    μ₀,Knn,invKnn,kernel,likelihood,inference,
                     verbose,Autotuning,atfrequency,false)
             computeMatrices!(model)
             model.Trained = true

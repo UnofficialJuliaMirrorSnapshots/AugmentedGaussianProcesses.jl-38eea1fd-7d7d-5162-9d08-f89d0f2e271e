@@ -40,6 +40,7 @@ mutable struct SVGP{L<:Likelihood,I<:Inference,T<:Real,V<:AbstractVector{T}} <: 
     Σ::LatentArray{Symmetric{T,Matrix{T}}}
     η₁::LatentArray{V}
     η₂::LatentArray{Symmetric{T,Matrix{T}}}
+    μ₀::LatentArray{MeanPrior{T}}
     Kmm::LatentArray{Symmetric{T,Matrix{T}}}
     invKmm::LatentArray{Symmetric{T,Matrix{T}}}
     Knm::LatentArray{Matrix{T}}
@@ -59,6 +60,7 @@ function SVGP(X::AbstractArray{T1},y::AbstractArray{T2},kernel::Union{Kernel,Abs
             likelihood::LikelihoodType,inference::InferenceType,
             nInducingPoints::Integer
             ;verbose::Integer=0,Autotuning::Bool=true,atfrequency::Integer=1,
+            mean::Union{<:Real,AbstractVector{<:Real},MeanPrior}=ZeroMean(),
             IndependentPriors::Bool=true, OptimizeInducingPoints::Bool=false,ArrayType::UnionAll=Vector) where {T1<:Real,T2,LikelihoodType<:Likelihood,InferenceType<:Inference}
 
             X,y,nLatent,likelihood = check_data!(X,y,likelihood)
@@ -81,6 +83,15 @@ function SVGP(X::AbstractArray{T1},y::AbstractArray{T2},kernel::Union{Kernel,Abs
             Knm = deepcopy(κ)
             K̃ = LatentArray([zeros(T1,inference.Stochastic ? inference.nSamplesUsed : nSample) for _ in 1:nPrior])
             Kmm = LatentArray([similar(Σ[1]) for _ in 1:nPrior]); invKmm = similar.(Kmm)
+            μ₀ = []
+            if typeof(mean) <: Real
+                μ₀ = [ConstantMean(mean) for _ in 1:nPrior]
+            elseif typeof(mean) <: AbstractVector{<:Real}
+                μ₀ = [EmpiricalMean(mean) for _ in 1:nPrior]
+            else
+                μ₀ = [mean for _ in 1:nPrior]
+            end
+
             nSamplesUsed = nSample
             if inference.Stochastic
                 @assert inference.nSamplesUsed > 0 && inference.nSamplesUsed < nSample "The size of mini-batch is incorrect (negative or bigger than number of samples), please set nMinibatch correctly in the inference object"
@@ -96,7 +107,7 @@ function SVGP(X::AbstractArray{T1},y::AbstractArray{T2},kernel::Union{Kernel,Abs
                     nSample, nDim, nFeature, nLatent,
                     IndependentPriors,nPrior,
                     Z,μ,Σ,η₁,η₂,
-                    Kmm,invKmm,Knm,κ,K̃,
+                    μ₀,Kmm,invKmm,Knm,κ,K̃,
                     kernel,likelihood,inference,
                     verbose,Autotuning,atfrequency,OptimizeInducingPoints,false)
             if isa(inference.optimizer_η₁[1],ALRSVI)
