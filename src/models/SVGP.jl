@@ -112,7 +112,7 @@ function SVGP(X::AbstractArray{T1},y::AbstractArray{T2},kernel::Union{Kernel,Abs
 
             likelihood = init_likelihood(likelihood,inference,nLatent,nSamplesUsed,nFeatures)
             inference = init_inference(inference,nLatent,nFeatures,nSample,nSamplesUsed)
-            inference.x = view(X,:,:)
+            inference.x = view(X,1:nSample,:)
             inference.y = view.(y,:)
 
             model = SVGP{T1,TLikelihood,TInference,ArrayType{T1}}(X,y,
@@ -131,3 +131,6 @@ end
 function Base.show(io::IO,model::SVGP{T,<:Likelihood,<:Inference}) where {T}
     print(io,"Sparse Variational Gaussian Process with a $(model.likelihood) infered by $(model.inference) ")
 end
+
+@inline invK(model::SVGP) = model.invKmm
+@inline invK(model::SVGP,i::Integer) = model.invKmm[i]
