@@ -30,17 +30,25 @@ AugmentedGaussianProcesses.jl is a Julia package in development for **Data Augme
 <p align=center>
    <img src="docs/src/assets/Regression.png">
  </p>
+---
+## Two GP event counting likelihoods
+
+ - **Discrete Poisson Process** : Estimating a the Poisson parameter λ at every point (as λ₀σ(f)). (no reference at the moment)
+ - **Negative Binomial** : Estimating the success probability at every point for a negative binomial distribution (no reference at the miment)
+
+ <p align=center>
+    <img src="docs/src/assets/Events.png">
+  </p>
 
 ---
 ## One Multi-Class Classification Likelihood
   - **Logistic-SoftMax** : A modified version of the softmax where the exponential is replaced by the logistic function [IJulia example](https://nbviewer.jupyter.org/github/theogf/AugmentedGaussianProcesses.jl/blob/master/examples/MultiClass%20-%20LogisticSoftMax.ipynb)/[Reference][uaimulticlass]
 
  <p align=center>
-   <img src="docs/src/assets/final3D.png">
+   <img src="docs/src/assets/final3D.png" width=400px>
  </p>
 
 ## More models in development
-  - **Poisson** : For point process estimation
   - **Probit** : A Classifier with a Bernoulli likelihood with the probit link
   - **Online** : Allowing for all algorithms to work online as well
 
