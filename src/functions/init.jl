@@ -1,15 +1,16 @@
-""" Verify that the data is self-consistent and consistent with the likelihood """
-function check_data!(X::AbstractArray{T1,N1},y::AbstractArray{T2,N2},likelihood::Likelihood) where {T1<:Real,T2,N1,N2}
+## Verify that the data is self-consistent and consistent with the likelihood ##
+function check_data!(X::AbstractArray{T₁,N₁},y::AbstractArray{T₂,N₂},likelihood::Union{Distribution,Likelihood}) where {T₁<:Real,T₂,N₁,N₂}
     @assert (size(y,1)==size(X,1)) "There is not the same number of samples in X and y";
-    @assert N1 <= 2 "The input matrix X can only be a vector or a matrix"
-    if N1 == 1 #Reshape a X vector as a matrix
-        X = reshape(X,length(X),1);
-    end
+    @assert N₁ <= 2 "The input matrix X can only be a vector or a matrix"
     y,nLatent,likelihood = treat_labels!(y,likelihood)
-    return X,y,nLatent,likelihood
+    if N₁ == 1 #Reshape a X vector as a matrix
+        return reshape(X,:,1),y,nLatent,likelihood
+    else
+        return X,y,nLatent,likelihood
+    end
 end
 
-""" Verify that the likelihood and inference are compatible (are implemented) """
+## Verify that the likelihood and inference are compatible (are implemented) ##
 function check_implementation(model::Symbol,likelihood::L,inference::I) where {I<:Inference,L<:Likelihood}
     if isa(likelihood,GaussianLikelihood)
         if model == :GP && inference isa Analytic
@@ -30,7 +31,7 @@ function check_implementation(model::Symbol,likelihood::L,inference::I) where {I
     elseif likelihood isa LaplaceLikelihood
         if inference isa AnalyticVI || inference isa QuadratureVI
             return true
-        elseif model == :VGP && inference isa GibbsSampling
+        elseif model == :MCGP && inference isa GibbsSampling
             return true
         else
             return false
@@ -41,10 +42,18 @@ function check_implementation(model::Symbol,likelihood::L,inference::I) where {I
         else
             return false
         end
-    elseif likelihood isa LogisticLikelihood
+    elseif likelihood isa HeteroscedasticLikelihood
         if inference isa AnalyticVI || inference isa QuadratureVI
             return true
         elseif model == :VGP && inference isa GibbsSampling
+            return true
+        else
+            return false
+        end
+    elseif likelihood isa LogisticLikelihood
+        if inference isa AnalyticVI || inference isa QuadratureVI
+            return true
+        elseif model == :MCGP && inference isa GibbsSampling
             return true
         else
             return false
@@ -64,7 +73,7 @@ function check_implementation(model::Symbol,likelihood::L,inference::I) where {I
     elseif likelihood isa LogisticSoftMaxLikelihood
         if inference isa AnalyticVI
             return true
-        elseif model == :VGP && inference isa GibbsSampling
+        elseif model == :MCGP && inference isa GibbsSampling
             return true
         elseif inference isa MCIntegrationVI
             return true
@@ -79,6 +88,12 @@ function check_implementation(model::Symbol,likelihood::L,inference::I) where {I
         end
     elseif likelihood isa NegBinomialLikelihood
         if inference isa AnalyticVI
+            return true
+        else
+            return false
+        end
+    elseif likelihood isa CustomLikelihood
+        if inference isa NumericalVI || inference isa HMCSampling
             return true
         else
             return false
